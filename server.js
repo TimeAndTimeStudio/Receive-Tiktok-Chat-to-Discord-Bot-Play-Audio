@@ -9,7 +9,6 @@ const config = require("./config");
 const queue = require("./queue");
 
 // ดึงข้อความจาก event ที่ normalize มาจาก Gateway
-// รองรับหลายรูปแบบ field เพราะโครงสร้าง data ขึ้นกับ EulerStream
 function extractText(body) {
   const data = body && body.data;
   if (!data) return null;
@@ -17,6 +16,28 @@ function extractText(body) {
   if (typeof data === "string") return data;
 
   return data.comment || data.text || data.message || data.content || null;
+}
+
+// ฟังก์ชั่นทำความสะอาดและตรวจสอบเงื่อนไขของข้อความ
+function cleanAndFilterText(rawText) {
+  if (!rawText) return null;
+
+  // 1. ข้ามถ้าข้อความมี @
+  if (rawText.includes("@")) {
+    return null;
+  }
+
+  // 2. ลบ emoji ออกจากข้อความ
+  const textWithoutEmoji = rawText
+    .replace(/\p{Extended_Pictographic}/gu, "")
+    .trim();
+
+  // 3. ข้ามถ้าข้อความว่างเปล่าหลังลบ emoji
+  if (!textWithoutEmoji) {
+    return null;
+  }
+
+  return textWithoutEmoji;
 }
 
 function handleRequest(req, res) {
@@ -29,7 +50,6 @@ function handleRequest(req, res) {
   let body = "";
   req.on("data", (chunk) => {
     body += chunk;
-    // กันข้อมูล payload ใหญ่ผิดปกติ
     if (body.length > 1_000_000) req.destroy();
   });
 
@@ -43,10 +63,11 @@ function handleRequest(req, res) {
       return;
     }
 
-    const text = extractText(parsed);
+    const rawText = extractText(parsed);
+    const cleanedText = cleanAndFilterText(rawText);
 
-    if (text && text.length > 0 && text.length <= config.filter.maxLength) {
-      queue.enqueueText(text);
+    if (cleanedText && cleanedText.length <= config.filter.maxLength) {
+      queue.enqueueText(cleanedText);
     }
 
     res.writeHead(200);
