@@ -33,8 +33,9 @@ module.exports = {
     outputFormat: "audio-24khz-160kbitrate-mono-mp3",
   },
 
-  // โฟลเดอร์เก็บไฟล์เสียงชั่วคราว (จะถูกลบหลังเล่นจบ)
+  // การตั้งค่าเกี่ยวกับเสียงและการเล่น
   audio: {
     tempDir: "./tmp_audio",
+    delayBetweenCommentsMs: 1500, // หน่วงเวลารอระหว่างแต่ละคอมเมนต์ (1500ms = 1.5 วินาที)
   },
 };
