@@ -14,7 +14,7 @@ const client = new Client({
   intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildVoiceStates],
 });
 
-client.once("ready", async () => {
+client.once("clientReady", async () => {
   console.log(`[bot] Logged in as ${client.user.tag}`);
 
   await player.connectVoice(client);
