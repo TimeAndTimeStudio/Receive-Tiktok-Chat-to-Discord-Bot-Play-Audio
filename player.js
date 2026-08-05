@@ -46,7 +46,6 @@ function cleanupFile(filePath) {
 
 let currentFile = null;
 
-// เล่นไฟล์ถัดไปในคิว (ถ้าไม่มีไฟล์กำลังเล่นอยู่)
 function processQueueTracked() {
   if (isPlaying) return;
   if (playQueue.length === 0) return;
@@ -60,6 +59,7 @@ function processQueueTracked() {
   audioPlayer.play(resource);
 }
 
+// เมื่อเล่นจบ หน่วงเวลาตาม config ก่อนอ่านคอมเมนต์ถัดไป
 audioPlayer.on(AudioPlayerStatus.Idle, () => {
   isPlaying = false;
 
@@ -68,7 +68,9 @@ audioPlayer.on(AudioPlayerStatus.Idle, () => {
     currentFile = null;
   }
 
-  processQueueTracked();
+  setTimeout(() => {
+    processQueueTracked();
+  }, config.audio.delayBetweenCommentsMs);
 });
 
 audioPlayer.on("error", (err) => {
@@ -80,7 +82,9 @@ audioPlayer.on("error", (err) => {
     currentFile = null;
   }
 
-  processQueueTracked();
+  setTimeout(() => {
+    processQueueTracked();
+  }, config.audio.delayBetweenCommentsMs);
 });
 
 module.exports = {
