@@ -6,6 +6,7 @@
 // ==========================================================
 
 const { Client, GatewayIntentBits } = require("discord.js");
+require("./logger"); // ต้อง require ก่อนตัวอื่นเพื่อให้ patch console.log/error ทันเวลา
 const config = require("./config");
 const player = require("./player");
 const server = require("./server");

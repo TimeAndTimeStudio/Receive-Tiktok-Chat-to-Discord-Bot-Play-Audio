@@ -8,6 +8,11 @@ const http = require("http");
 const config = require("./config");
 const queue = require("./queue");
 
+// log ตอน drop ข้อความ (เขียนลง console.log ซึ่งถูก logger.js patch ให้ลงไฟล์ด้วยแล้ว)
+function logDrop(reason) {
+  console.log(`[server] Dropped: ${reason}`);
+}
+
 // ดึงข้อความจาก event ที่ normalize มาจาก Gateway
 function extractText(body) {
   const data = body && body.data;
@@ -58,18 +63,36 @@ function handleRequest(req, res) {
     try {
       parsed = JSON.parse(body);
     } catch (err) {
+      logDrop(`invalid JSON - ${err.message}`);
       res.writeHead(400);
       res.end("Invalid JSON");
       return;
     }
 
     const rawText = extractText(parsed);
-    const cleanedText = cleanAndFilterText(rawText);
-
-    if (cleanedText && cleanedText.length <= config.filter.maxLength) {
-      queue.enqueueText(cleanedText);
+    if (!rawText) {
+      logDrop("no text field found in event");
+      res.writeHead(200);
+      res.end("OK");
+      return;
     }
 
+    const cleanedText = cleanAndFilterText(rawText);
+    if (!cleanedText) {
+      logDrop(`empty/filtered after cleaning (raw="${rawText}")`);
+      res.writeHead(200);
+      res.end("OK");
+      return;
+    }
+
+    if (cleanedText.length > config.filter.maxLength) {
+      logDrop(`too long (${cleanedText.length} > ${config.filter.maxLength} chars)`);
+      res.writeHead(200);
+      res.end("OK");
+      return;
+    }
+
+    queue.enqueueText(cleanedText);
     res.writeHead(200);
     res.end("OK");
   });

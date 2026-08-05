@@ -9,6 +9,8 @@ const fs = require("fs");
 const path = require("path");
 const config = require("./config");
 
+const AZURE_TIMEOUT_MS = 8000; // กัน Azure ช้าแล้วไปถ่วงคิวข้อความอื่น
+
 function escapeSsml(text) {
   return String(text)
     .replace(/&/g, "&amp;")
@@ -36,16 +38,30 @@ async function synthesizeToFile(text, filePath) {
   const url = `https://${config.azure.speechRegion}.tts.speech.microsoft.com/cognitiveservices/v1`;
   const ssml = buildSsml(text);
 
-  const res = await fetch(url, {
-    method: "POST",
-    headers: {
-      "Ocp-Apim-Subscription-Key": config.azure.speechKey,
-      "Content-Type": "application/ssml+xml",
-      "X-Microsoft-OutputFormat": config.azure.outputFormat,
-      "User-Agent": "tts-voice-bot",
-    },
-    body: ssml,
-  });
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), AZURE_TIMEOUT_MS);
+
+  let res;
+  try {
+    res = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Ocp-Apim-Subscription-Key": config.azure.speechKey,
+        "Content-Type": "application/ssml+xml",
+        "X-Microsoft-OutputFormat": config.azure.outputFormat,
+        "User-Agent": "tts-voice-bot",
+      },
+      body: ssml,
+      signal: controller.signal,
+    });
+  } catch (err) {
+    if (err.name === "AbortError") {
+      throw new Error(`Azure TTS timed out after ${AZURE_TIMEOUT_MS}ms`);
+    }
+    throw err;
+  } finally {
+    clearTimeout(timer);
+  }
 
   if (!res.ok) {
     const errText = await res.text().catch(() => "");
