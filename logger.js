@@ -17,6 +17,13 @@ try {
   // ถ้าสร้างโฟลเดอร์ไม่ได้ ก็ปล่อยให้ log ขึ้น console อย่างเดียวต่อไป
 }
 
+// รีเซ็ต app.log ทุกครั้งที่รันโปรแกรมใหม่ (ไม่ต่อจากรันก่อนหน้า)
+try {
+  fs.writeFileSync(LOG_FILE, `[${new Date().toISOString()}] [INFO] === Log started (fresh file on process start) ===\n`);
+} catch (err) {
+  // ถ้าเขียนไม่ได้ตอน reset ก็ปล่อยให้ appendFileSync ด้านล่าง error เองตอนใช้งานจริง
+}
+
 const originalLog = console.log.bind(console);
 const originalError = console.error.bind(console);
 
